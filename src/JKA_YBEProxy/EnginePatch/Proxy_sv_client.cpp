@@ -2,6 +2,33 @@
 
 /*
 ==================
+SV_ClientThink
+==================
+*/
+extern void GVM_ClientThink(int clientNum, usercmd_t *cmd);
+static void Proxy_SV_ClientThink (client_t *cl, usercmd_t *cmd) {
+	playerState_t *ps;
+
+	if ( cl->state != CS_ACTIVE ) {
+		cl->lastUsercmd = *cmd;
+		return; // may have been kicked during the last usercmd
+	}
+
+	ps = Proxy_GetPlayerStateByClientNum(getClientNumFromAddr(cl));
+	if (ps && (ps->pm_flags & PMF_FOLLOW)) {
+		if ((cmd->buttons & BUTTON_ALT_ATTACK) && !(cl->lastUsercmd.buttons & BUTTON_ALT_ATTACK)) {
+			server.functions.SV_ExecuteClientCommand(cl, "followPrev", qtrue);
+		}
+	}
+	cl->lastUsercmd = *cmd;
+
+	//VM_Call( gvm, GAME_CLIENT_THINK, cl - svs.clients );
+	//server.functions.SV_ClientThink( cl, cmd );
+	GVM_ClientThink( cl - server.svs->clients, cmd ); //openjk passes NULL instead of cmd??
+}
+
+/*
+==================
 SV_UserMove
 
 The message usually contains all the movement commands 
@@ -128,7 +155,8 @@ void Proxy_SV_UserMove(client_t* client, msg_t* msg, qboolean delta)
 			continue;
 		}
 
-		server.functions.SV_ClientThink(client, &cmds[i]);
+		//server.functions.SV_ClientThink(client, &cmds[i]);
+		Proxy_SV_ClientThink(client, &cmds[i]);
 
 		// Proxy -------------->
 		if (client->ping < 1)

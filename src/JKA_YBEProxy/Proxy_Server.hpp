@@ -24,6 +24,7 @@
 	// Function address to call
 	#define func_SV_ClientEnterWorld_addr 0x43b230
 	#define func_SV_ClientThink_addr 0x43bba0
+	#define func_SV_ExecuteClientCommand_addr 0x43bad0
 	#define func_SV_DropClient_addr 0x43bbf0
 	#define func_SV_Netchan_Transmit_addr 0x444950
 	#define func_SV_RateMsec_addr 0x444d60
@@ -86,6 +87,7 @@
 	// Function address to call
 	#define func_SV_ClientEnterWorld_addr 0x804d444
 	#define func_SV_ClientThink_addr 0x804e634
+	#define func_SV_ExecuteClientCommand_addr 0x804e3d4
 	#define func_SV_DropClient_addr 0x804cb84
 	#define func_SV_Netchan_Transmit_addr 0x8057db4
 	#define func_SV_RateMsec_addr 0x8058c04
@@ -147,6 +149,7 @@ typedef struct serverFunctions_s
 {
 	void		(*SV_ClientEnterWorld)							(client_t*, usercmd_t*);
 	void		(*SV_ClientThink)								(client_t*, usercmd_t*);
+	void		(*SV_ExecuteClientCommand)						(client_t *, const char *, qboolean);
 	void		(*SV_DropClient)								(client_t*, const char*);
 	void		(*SV_Netchan_Transmit)							(client_t*, msg_t*);
 	int			(*SV_RateMsec)									(client_t*, int);

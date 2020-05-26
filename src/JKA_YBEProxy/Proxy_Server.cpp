@@ -23,6 +23,7 @@ void Proxy_Server_Initialize_MemoryAddress(void)
 	// functions
 	server.functions.SV_ClientEnterWorld = (void (*)(client_t*, usercmd_t*))func_SV_ClientEnterWorld_addr;
 	server.functions.SV_ClientThink = (void (*)(client_t*, usercmd_t*))func_SV_ClientThink_addr;
+	server.functions.SV_ExecuteClientCommand = (void (*)(client_t*, const char*, qboolean))func_SV_ExecuteClientCommand_addr;
 	server.functions.SV_DropClient = (void (*)(client_t*, const char*))func_SV_DropClient_addr;
 	server.functions.SV_Netchan_Transmit = (void (*)(client_t*, msg_t*))func_SV_Netchan_Transmit_addr;
 	server.functions.SV_RateMsec = (int (*)(client_t*, int))func_SV_RateMsec_addr;

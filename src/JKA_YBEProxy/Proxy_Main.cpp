@@ -224,3 +224,9 @@ Q_CABI Q_EXPORT gameExport_t* QDECL GetModuleAPI(int apiVersion, gameImport_t* i
 
 	return proxy.copyNewAPIGameExportTable;
 }
+
+void GVM_ClientThink(int clientNum, usercmd_t *cmd) {
+	vmMain( GAME_CLIENT_THINK, (intptr_t)clientNum, (intptr_t)0,
+		(intptr_t)0, (intptr_t)0, (intptr_t)0, (intptr_t)0, (intptr_t)0,
+		(intptr_t)0, (intptr_t)0, (intptr_t)0, (intptr_t)0, (intptr_t)0 );
+}
