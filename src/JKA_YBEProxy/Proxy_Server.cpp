@@ -96,39 +96,50 @@ void Proxy_Server_CalcPacketsAndFPS(int clientNum, int* packets, int* fps)
 void Proxy_Server_UpdateUcmdStats(int clientNum, usercmd_t* cmd, int packetIndex)
 {
 	proxy.clientData[clientNum].cmdIndex++;
-	proxy.clientData[clientNum].cmdStats[proxy.clientData[clientNum].cmdIndex & (CMD_MASK - 1)].serverTime = cmd->serverTime;
-	proxy.clientData[clientNum].cmdStats[proxy.clientData[clientNum].cmdIndex & (CMD_MASK - 1)].packetIndex = packetIndex;
+	const int cmdIndex = (proxy.clientData[clientNum].cmdIndex & (CMD_MASK - 1));
+	proxy.clientData[clientNum].cmdStats[cmdIndex].serverTime = cmd->serverTime;
+	proxy.clientData[clientNum].cmdStats[cmdIndex].packetIndex = packetIndex;
+}
+
+static inline int Proxy_CalculateTimeNudge(int clientNum, float serverFrameTime)
+{
+	timenudgeData_t *timenudgeData = &proxy.clientData[clientNum].timenudgeData;
+	int magicOffsetNumber = 19;
+
+	if (server.cvars.sv_fps->integer >= 30)
+		magicOffsetNumber = 11;//hack (DUMB), should just fix calculation so it doesn't rely on magic numbers like this
+
+#if defined(_WIN32) && !defined(MING32)
+	magicOffsetNumber += 2;
+#endif
+
+	return (
+			(timenudgeData->delaySum / (float)timenudgeData->delayCount)
+			+ (timenudgeData->pingSum / (float)timenudgeData->delayCount)
+			- magicOffsetNumber // this magic number might be the instructions time until the calc
+			+ serverFrameTime
+			) * -1;
 }
 
 void Proxy_Server_UpdateTimenudge(client_t* client, usercmd_t* cmd, int _Milliseconds)
 {
-	proxy.clientData[getClientNumFromAddr(client)].timenudgeData.delayCount++;
-	proxy.clientData[getClientNumFromAddr(client)].timenudgeData.delaySum += cmd->serverTime - server.svs->time;
-	proxy.clientData[getClientNumFromAddr(client)].timenudgeData.pingSum += client->ping;
+	const int clientNum = getClientNumFromAddr(client);
+
+	proxy.clientData[clientNum].timenudgeData.delayCount++;
+	proxy.clientData[clientNum].timenudgeData.delaySum += cmd->serverTime - server.svs->time;
+	proxy.clientData[clientNum].timenudgeData.pingSum += client->ping;
 
 	// Wait 1000 ms so we have enough data when we'll calcul an approximation of the timenudge
-	if (_Milliseconds < proxy.clientData[getClientNumFromAddr(client)].timenudgeData.lastTimeTimeNudgeCalculation + 1000)
-	{
+	if (_Milliseconds < proxy.clientData[clientNum].timenudgeData.lastTimeTimeNudgeCalculation + 1000) {
 		return;
 	}
 
 	// ((serverTime - sv.time) + ping -18 + (1000/sv_fps)) * -1
-	proxy.clientData[getClientNumFromAddr(client)].timenudge =
-		(
-			(proxy.clientData[getClientNumFromAddr(client)].timenudgeData.delaySum / (float)proxy.clientData[getClientNumFromAddr(client)].timenudgeData.delayCount)
-			+ (proxy.clientData[getClientNumFromAddr(client)].timenudgeData.pingSum / (float)proxy.clientData[getClientNumFromAddr(client)].timenudgeData.delayCount)
-			// this magic number might be the instructions time until the calc
-#if defined(_WIN32) && !defined(MINGW32)
-			- 21
-#else
-			- 19
-#endif
-			+ (1000 / (float)server.cvars.sv_fps->integer)
-		) * -1;
+	proxy.clientData[clientNum].timenudge = Proxy_CalculateTimeNudge(clientNum, (1000.0f / server.cvars.sv_fps->value)); //mayb should just check the time since last frame?
 
-	proxy.clientData[getClientNumFromAddr(client)].timenudgeData.delayCount = 0;
-	proxy.clientData[getClientNumFromAddr(client)].timenudgeData.delaySum = 0;
-	proxy.clientData[getClientNumFromAddr(client)].timenudgeData.pingSum = 0;
+	proxy.clientData[clientNum].timenudgeData.delayCount = 0;
+	proxy.clientData[clientNum].timenudgeData.delaySum = 0;
+	proxy.clientData[clientNum].timenudgeData.pingSum = 0;
 
-	proxy.clientData[getClientNumFromAddr(client)].timenudgeData.lastTimeTimeNudgeCalculation = _Milliseconds;
+	proxy.clientData[clientNum].timenudgeData.lastTimeTimeNudgeCalculation = _Milliseconds;
 }
